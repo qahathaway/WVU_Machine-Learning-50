@@ -1,0 +1,158 @@
+Supervised Learning Code (CART)
+The code is provided in a user compatible format, allowing for the addition of other datasets.
+
+#PyCharm Interpreter Community Edition 2018.1.4
+#Python Version 3.6.5
+
+#Reads the first sheet of an excel file containing the patient data.
+#Each row corresponds to a patient and the top row contains biomarker names
+# The final column contains the patient label
+# The algorithm uses this label to calculate loss and adjust the model to improve prediction capabilities
+
+import pandas #For reading data from the excel file
+from sklearn.metrics import classification_report #Provides testing F1 scores
+from sklearn.metrics import accuracy_score #Provides  algorithm testing accuracy
+
+#scikit-learn Machine Learning models:
+from sklearn import model_selection
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+
+from sklearn import tree #For exporting the derived CART tree
+import matplotlib as mpl #For visualization of CART tree
+mpl.use('TkAgg')
+
+#The saved excel document file path which contains the patient data:
+FileName = '<path to excel sheet containing data>'
+
+#Read the contents of the excel sheet into a Data File:
+#Defaults to Sheet 1 of the EXCEL File
+DataFile = pandas.read_excel(FileName)
+
+#Appends the labels of each column into a list
+biomarker_names = DataFile.columns.values.tolist()
+
+#Bring all numeric values of the datafile into an array
+biomarker_values = DataFile.values
+
+#Select biomarkers to be used in training the ML algorithm, indexing starts from 0
+biomarkers = (<input feature indices to be tested>)
+
+#Split the datafile into array X which contains the numeric values of the selected features
+X = biomarker_values[:, biomarkers]
+
+#Split the datafile into array Y which contains the labels that the algorithm will use to calculate loss
+#In our excel files, these labels are the last column of the datafile
+Y = biomarker_values[:, (biomarker_values.shape[1] - 1)]
+
+#Chose a seed that gives appropriate testing set distribution
+#This distribution is shown in the accuracy report after the algorithm has trained
+#Sample distribution shown under "support" column
+seed = <input seed integer value>
+
+#Determine the percentage of samples to be set aside as the testing set:
+test_size = 0.20
+
+#Split the X values and accompanying Y labels into training and testing sets based off the seed and selected test size
+X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, test_size = test_size, random_state = seed)
+
+
+#Create basic scikit-learn ML models to be trained:
+ML_names = ['Classification and Regression Tree (CART)', 'Gaussian Naive Bayes (NB)', 'K-Nearest Neighbors (KNN)',
+             'Linear Discriminant Analysis (LDA)', 'Logistic Regression (LR)', 'Support Vector Machine (SVM)']
+ML_models = [DecisionTreeClassifier(), GaussianNB(), KNeighborsClassifier(), LinearDiscriminantAnalysis(),
+             LogisticRegression(), SVC()]
+
+#Determine the number of folds wanted in K-Fold Cross Validation:
+number_validation_folds = 10
+
+#Train each ML model on the X_train set and display associated training accuracies with standard deviation:
+count = 0
+for model in ML_models:
+    cross_validation = model_selection.KFold(n_splits = number_validation_folds, random_state = seed)
+    trained_results = model_selection.cross_val_score(model, X_train, Y_train, cv = cross_validation, scoring = 'accuracy')
+    result = "%s: \n \t Training Accuracy: %f \n \t Standard Deviation: %f" % (
+    ML_names[count], trained_results.mean(), trained_results.std())
+    print(result)
+    count += 1
+
+CART = DecisionTreeClassifier()
+NB = GaussianNB()
+KNN = KNeighborsClassifier()
+LDA = LinearDiscriminantAnalysis()
+LR = LogisticRegression()
+SVM = SVC()
+
+#Fit the training data and training labels to the models to be tested on test_set:
+CART.fit(X_train, Y_train)
+NB.fit(X_train, Y_train)
+KNN.fit(X_train, Y_train)
+LDA.fit(X_train, Y_train)
+LR.fit(X_train, Y_train)
+SVM.fit(X_train, Y_train)
+
+#For CART analysis, save visual output of the created classification tree:
+selected_biomarker_names = []
+for i in biomarkers:
+	selected_biomarker_names.append(biomarker_names[i])
+
+#Choose file path for where to save the tree dot file:
+dotfile = open("<path to CART tree dot file save location>", 'w')
+tree.export_graphviz(CART, out_file = dotfile, feature_names = selected_biomarker_names, filled = True, rounded = True)
+dotfile.close()
+
+#Test the models on the testing set:
+CART_test = CART.predict(X_test)
+NB_test = NB.predict(X_test)
+KNN_test= KNN.predict(X_test)
+LDA_test = LDA.predict(X_test)
+LR_test = LR.predict(X_test)
+SVM_test = SVM.predict(X_test)
+
+#Print the feature importance of the tested biomarkers from CART analysis:
+print("\nCART Feature Importance:")
+
+importance = CART.feature_importances_
+count = 0;
+for num in biomarkers:
+	print("Excel Column #"),
+	print(num + 1),
+	print(" Name: "),
+	print(biomarker_names.__getitem__(num)),
+	print(": "),
+	print(importance[count])
+	count += 1
+
+print("\nCART Testing Accuracy")
+print(classification_report(Y_test, CART_test))
+print("\nCART Testing Accuracy: Overall Correct/Total")
+print(accuracy_score(Y_test, CART_test))
+
+print("\nGaussian NB Testing Accuracy")
+print(classification_report(Y_test, NB_test))
+print("\nGaussian NB Testing Accuracy: Overall Correct/Total")
+print(accuracy_score(Y_test, NB_test))
+
+print("\nKNN Testing Accuracy")
+print(classification_report(Y_test, KNN_test))
+print("\nKNN Testing Accuracy: Overall Correct/Total")
+print(accuracy_score(Y_test, KNN_test))
+
+print("\nLDA Testing Accuracy")
+print(classification_report(Y_test, LDA_test))
+print("\nLDA Testing Accuracy: Overall Correct/Total")
+print(accuracy_score(Y_test, LDA_test))
+
+print("\nLR Testing Accuracy")
+print(classification_report(Y_test, LR_test))
+print("\nLR Testing Accuracy: Overall Correct/Total")
+print(accuracy_score(Y_test, LR_test))
+
+print("\nSVC Testing Accuracy")
+print(classification_report(Y_test, SVM_test))
+print("\nSVC Testing Accuracy: Overall Correct/Total")
+print(accuracy_score(Y_test, SVM_test))
