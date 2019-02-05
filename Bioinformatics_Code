@@ -1,0 +1,46 @@
+Bioinformatics Code
+The code is provided in a user compatible format, allowing for the addition of other datasets.
+
+#Bowtie 2.3.4.3
+#SAMtools 1.9
+#Bcftools 1.9
+#Bismark 0.20.0
+
+##Mitochondrial SNPs##
+#Build the reference genome
+bowtie2-build --threads 20 <path to fasta reference genome> <output file location>
+
+#Index the reference genome
+samtools faidx <path to reference genome>
+
+#Mapping reads using --very-sensitive-local
+bowtie2 -q --very-sensitive-local -t -p 20 -x <path to bowtie2 reference genome> -1 <path to first paired-end read> -2 <path to second paired-end read> | samtools view -b -> <output BAM file location>
+
+#Sort the BAM files
+samtools sort <BAM file to be sorted> -o <output sorted BAM>
+
+#Specifically pull out the "MT" mitochondrial mapped reads
+bcftools mpileup --threads 20 -L 2000 -t "MT" -Ob -f <path to fasta reference genome> <path to sorted BAM> > <output file for raw.bcf>
+
+#SNP calling
+bcftools call -m -v <path to raw.bcf> > <ouput file var.bcf>
+
+#Quality filter results
+bcftools filter -e '%QUAL<25 || DP<5' <path to var.bcf> > <output file to filter-var.bcf>
+
+#Statistics on mapping
+bcftools stats <path to filter-var.bcf> > <output file to .txt>
+
+#Plotting values
+plot-vcfstats -p <output folder location> <output file to .txt>
+
+
+##TFAM CpG Island Analysis##
+#Preparing the methylation specific refernce genomes
+bismark_genome_preparation --verbose <path to fasta reference genome>
+
+#Mapping of files to the methylated genome
+bismark --multicore 10 --non_directional -o <output file location> --genome <path to methylation specific bowtie2 reference genome> -1 <path to first paired-end read> -2 <path to second paired-end read>
+
+#Site-specifc methylation for PE reads
+bismark_methylation_extractor -s --ignore 2 --ignore_3prime 2 --merge_non_CpG --report --mbias_only -o <output file location> --multicore 10 <path to paired-end aligned BAM file>
